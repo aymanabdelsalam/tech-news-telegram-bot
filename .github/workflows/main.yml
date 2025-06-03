@@ -29,8 +29,8 @@ jobs:
           - name: Download NLTK 'punkt' resource 
             run: | 
                python -c "import nltk; print('Attempting to download NLTK punkt...'); nltk.download('punkt', download_dir='/home/runner/nltk_data'); print('NLTK punkt download attempt finished.')"
-              echo "Listing contents of /home/runner/nltk_data/tokenizers:"
-              ls -la /home/runner/nltk_data/tokenizers/punkt || echo "Punkt directory not found or ls failed"
+               echo "Listing contents of /home/runner/nltk_data/tokenizers:"
+               ls -la /home/runner/nltk_data/tokenizers/punkt || echo "Punkt directory not found or ls failed"
 
           - name: Run Python script
             env:
