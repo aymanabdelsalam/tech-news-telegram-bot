@@ -1,7 +1,15 @@
-import nltk
+import feedparser
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lsa import LsaSummarizer
+from googletrans import Translator
+import telegram
+import asyncio
 import os
+from bs4 import BeautifulSoup # For HTML cleaning
 
 # --- NLTK Data Path Configuration ---
+# This ensures NLTK looks in the directory where we downloaded 'punkt' in the GitHub Action.
 print("--- Python Script: NLTK Setup ---")
 nltk_custom_download_dir = '/home/runner/nltk_data'
 if os.path.exists(nltk_custom_download_dir):
@@ -12,7 +20,7 @@ if os.path.exists(nltk_custom_download_dir):
     # Check for the specific punkt tokenizer path and english.pickle
     punkt_english_pickle_path_str = f'tokenizers/punkt/english.pickle'
     full_path_to_pickle = os.path.join(nltk_custom_download_dir, punkt_english_pickle_path_str)
-
+    
     print(f"Checking for: {full_path_to_pickle}")
     if os.path.exists(full_path_to_pickle):
         print(f"SUCCESS: Found {full_path_to_pickle}")
@@ -23,29 +31,12 @@ if os.path.exists(nltk_custom_download_dir):
             print(f"Successfully loaded '{punkt_english_pickle_path_str}' with nltk.data.load(). Type: {type(loaded_resource)}")
         except Exception as e:
             print(f"ERROR trying to nltk.data.load('{punkt_english_pickle_path_str}'): {e}")
-            print("This might indicate the pickle file is present but cannot be loaded, or it has internal dependencies that are missing (like 'punkt_tab').")
     else:
         print(f"ERROR: {full_path_to_pickle} NOT found.")
-        # Also list contents of tokenizers/punkt if pickle not found (though we know it is from workflow logs)
-        punkt_dir_path = os.path.join(nltk_custom_download_dir, 'tokenizers', 'punkt')
-        if os.path.exists(punkt_dir_path):
-            print(f"Contents of {punkt_dir_path}: {os.listdir(punkt_dir_path)}")
-        else:
-            print(f"{punkt_dir_path} does not exist.")
 else:
     print(f"NLTK custom download directory {nltk_custom_download_dir} not found.")
 print("--- End NLTK Setup ---")
 # --- End NLTK Data Path Configuration ---
-
-import feedparser
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
-from googletrans import Translator
-import telegram
-import asyncio
-import os # For environment variables and file operations
-from bs4 import BeautifulSoup
 
 
 # --- CONFIGURATION (from environment variables) ---
@@ -72,6 +63,7 @@ def save_last_sent_link(link):
 
 # --- 1. FETCH LATEST NEWS ---
 def fetch_latest_news(feed_url):
+    """Fetches the latest news item from an RSS feed."""
     print(f"Fetching news from: {feed_url}")
     feed = feedparser.parse(feed_url)
     if not feed.entries:
@@ -82,23 +74,26 @@ def fetch_latest_news(feed_url):
     return {
         'title': latest_entry.title,
         'link': latest_entry.link,
-        'description': latest_entry.get('summary', latest_entry.get('description', ''))
+        'description': latest_entry.get('summary', latest_entry.get('description', '')) # Get summary or description
     }
 
 # --- 2. SUMMARIZE NEWS ---
 def summarize_text(text, num_sentences):
+    """Summarizes the given plain text."""
     if not text:
         print("No text to summarize.")
         return ""
+    # Assuming 'text' is plain text now
     parser = PlaintextParser.from_string(text, Tokenizer("english"))
     summarizer = LsaSummarizer()
     summary_result = summarizer(parser.document, num_sentences)
     summary_text = " ".join([str(sentence) for sentence in summary_result])
-    print(f"Summary: {summary_text}")
+    print(f"Summary (from plain text): {summary_text}")
     return summary_text
 
 # --- 3. TRANSLATE TEXT ---
 def translate_text(text, dest_language):
+    """Translates plain text to the destination language."""
     if not text:
         print("No text to translate.")
         return ""
@@ -114,19 +109,18 @@ def translate_text(text, dest_language):
 
 # --- 4. SUBMIT TO TELEGRAM ---
 async def send_to_telegram(bot_token, chat_id, message):
-    """Sends a message to a Telegram chat/channel."""
+    """Sends a message to a Telegram chat/channel. Returns True on success, False on failure."""
     if not bot_token or not chat_id:
         print("Error: Telegram Bot Token or Chat ID is not set.")
-        return False # Indicate failure
+        return False
     try:
         bot = telegram.Bot(token=bot_token)
         await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=False)
         print("Message sent to Telegram successfully!")
-        return True # Indicate success
+        return True
     except Exception as e:
         print(f"Error sending message to Telegram: {e}")
-        return False # Indicate failure
-        
+        return False
 
 # --- MAIN WORKFLOW ---
 async def main():
@@ -145,48 +139,57 @@ async def main():
         print("No new articles to send. The latest article is the same as the last one sent.")
         return
 
-        # --- ADD HTML CLEANING HERE ---
-        raw_description = news_item['description']
-        if raw_description:
-            soup = BeautifulSoup(raw_description, "html.parser")
-            article_text_to_summarize = soup.get_text(separator=" ", strip=True)
-            print(f"Cleaned text for summary: {article_text_to_summarize[:200]}...") # Log snippet
-        else:
-            article_text_to_summarize = news_item['title'] # Fallback to title if description is empty
-            print("Description was empty, using article title for summary input.")
-        # --- END HTML CLEANING ---
-
+    # HTML CLEANING of the description
+    raw_description = news_item['description']
+    article_text_to_summarize = "" # Initialize
+    if raw_description:
+        soup = BeautifulSoup(raw_description, "html.parser")
+        article_text_to_summarize = soup.get_text(separator=" ", strip=True)
+        print(f"Cleaned text for summary (first 200 chars): {article_text_to_summarize[:200]}...")
     
-    article_text_to_summarize = news_item['description']
-    if len(article_text_to_summarize.split()) < 20 and not news_item['description']: # If description is very short or empty
-         # Attempt to fetch more content if description is too short - placeholder
-        print("Description too short, using title as summary basis if description empty.")
-        summary_input = news_item['title'] if not news_item['description'] else news_item['description']
+    # Fallback if description was empty or resulted in empty cleaned text
+    if not article_text_to_summarize:
+        article_text_to_summarize = news_item['title'] # Fallback to title
+        print("Description was empty or cleaned to empty, using article title for summary input.")
+
+    # Summarization
+    if len(article_text_to_summarize.split()) < 10: # Adjusted minimum length for meaningful summary
+        summary = article_text_to_summarize # Use directly if too short
+        print("Cleaned text too short, using it directly as summary.")
     else:
-        summary_input = article_text_to_summarize
+        summary = summarize_text(article_text_to_summarize, NUM_SENTENCES_SUMMARY)
+    
+    if not summary: # Ensure summary is not empty after summarization attempt
+        print("Summarizer returned empty, using original cleaned text or title as fallback summary.")
+        summary = article_text_to_summarize # Fallback to the cleaned text (or title if description was empty)
 
+    # DEBUG: Print final summary before translation
+    print(f"DEBUG: Final summary before translation: {summary}")
 
-    summary = summarize_text(summary_input, NUM_SENTENCES_SUMMARY)
-    if not summary and summary_input: # If summarizer returns empty, use the input
-        summary = summary_input
-        print("Summarizer returned empty, using original input for summary.")
-
-
-    if not summary:
-        print("Failed to generate summary.")
-        return
-
+    # Translation
     arabic_summary = translate_text(summary, LANGUAGE_TO_TRANSLATE_TO)
+    if not arabic_summary or "Translation failed" in arabic_summary: # Check if translation actually failed
+        print("Translation failed or resulted in error message. Sending English summary if available, or a notice.")
+        if summary and "Translation failed" not in summary : # Avoid sending "Translation failed" as the message
+             arabic_summary = f"Original Summary (English):\n{summary}" # Fallback to English summary
+        else:
+             arabic_summary = "Summary processing error."
 
+
+    # DEBUG: Print final Arabic summary before sending
+    print(f"DEBUG: Final Arabic summary before sending to Telegram: {arabic_summary}")
+
+    # Format and Send to Telegram
     message_to_send = (
         f"<b>{news_item['title']}</b>\n\n"
-        f"{arabic_summary}\n\n"
+        f"{arabic_summary}\n\n" # This should now be plain text
         f"<a href='{news_item['link']}'>اقرأ المزيد (Read More)</a>"
     )
 
     send_success = await send_to_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message_to_send)
+
     if send_success:
-        save_last_sent_link(news_item['link']) # Save only if send was successful
+        save_last_sent_link(news_item['link'])
         print(f"Successfully processed and sent article. Updated last sent link to: {news_item['link']}")
     else:
         print(f"Failed to send article '{news_item['title']}' to Telegram. State file not updated.")
