@@ -45,6 +45,8 @@ from googletrans import Translator
 import telegram
 import asyncio
 import os # For environment variables and file operations
+from bs4 import BeautifulSoup
+
 
 # --- CONFIGURATION (from environment variables) ---
 RSS_FEED_URL = os.environ.get('RSS_FEED_URL', 'http://feeds.feedburner.com/TechCrunch/')
@@ -112,15 +114,19 @@ def translate_text(text, dest_language):
 
 # --- 4. SUBMIT TO TELEGRAM ---
 async def send_to_telegram(bot_token, chat_id, message):
+    """Sends a message to a Telegram chat/channel."""
     if not bot_token or not chat_id:
         print("Error: Telegram Bot Token or Chat ID is not set.")
-        return
+        return False # Indicate failure
     try:
         bot = telegram.Bot(token=bot_token)
         await bot.send_message(chat_id=chat_id, text=message, parse_mode='HTML', disable_web_page_preview=False)
         print("Message sent to Telegram successfully!")
+        return True # Indicate success
     except Exception as e:
         print(f"Error sending message to Telegram: {e}")
+        return False # Indicate failure
+        
 
 # --- MAIN WORKFLOW ---
 async def main():
@@ -139,6 +145,18 @@ async def main():
         print("No new articles to send. The latest article is the same as the last one sent.")
         return
 
+        # --- ADD HTML CLEANING HERE ---
+        raw_description = news_item['description']
+        if raw_description:
+            soup = BeautifulSoup(raw_description, "html.parser")
+            article_text_to_summarize = soup.get_text(separator=" ", strip=True)
+            print(f"Cleaned text for summary: {article_text_to_summarize[:200]}...") # Log snippet
+        else:
+            article_text_to_summarize = news_item['title'] # Fallback to title if description is empty
+            print("Description was empty, using article title for summary input.")
+        # --- END HTML CLEANING ---
+
+    
     article_text_to_summarize = news_item['description']
     if len(article_text_to_summarize.split()) < 20 and not news_item['description']: # If description is very short or empty
          # Attempt to fetch more content if description is too short - placeholder
@@ -146,6 +164,7 @@ async def main():
         summary_input = news_item['title'] if not news_item['description'] else news_item['description']
     else:
         summary_input = article_text_to_summarize
+
 
     summary = summarize_text(summary_input, NUM_SENTENCES_SUMMARY)
     if not summary and summary_input: # If summarizer returns empty, use the input
@@ -165,9 +184,12 @@ async def main():
         f"<a href='{news_item['link']}'>اقرأ المزيد (Read More)</a>"
     )
 
-    await send_to_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message_to_send)
-    save_last_sent_link(news_item['link']) # Save after successful send
-    print(f"Successfully processed and sent article. Updated last sent link to: {news_item['link']}")
+   send_success = await send_to_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message_to_send)
+    if send_success:
+        save_last_sent_link(news_item['link']) # Save only if send was successful
+        print(f"Successfully processed and sent article. Updated last sent link to: {news_item['link']}")
+    else:
+        print(f"Failed to send article '{news_item['title']}' to Telegram. State file not updated.")
 
 if __name__ == '__main__':
     asyncio.run(main())
