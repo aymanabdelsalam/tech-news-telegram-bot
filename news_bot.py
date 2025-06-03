@@ -186,7 +186,7 @@ async def main():
 
     send_success = await send_to_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message_to_send)
     if send_success:
-       save_last_sent_link(news_item['link']) # Save only if send was successful
+        save_last_sent_link(news_item['link']) # Save only if send was successful
         print(f"Successfully processed and sent article. Updated last sent link to: {news_item['link']}")
     else:
         print(f"Failed to send article '{news_item['title']}' to Telegram. State file not updated.")
