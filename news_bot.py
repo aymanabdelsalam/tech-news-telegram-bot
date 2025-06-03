@@ -108,9 +108,9 @@ def translate_text(text, dest_language):
         print("No text to translate.")
         return ""
     try:
-        translator = Translator()
-        translation = translator.translate(text, dest=dest_language)
-        translated_text = translation.text
+        # translator = Translator()
+        # translation = translator.translate(text, dest=dest_language)
+        translated_text = text
         print(f"Translated text ({dest_language}): {translated_text}")
         return translated_text
     except Exception as e:
@@ -162,29 +162,9 @@ async def main():
         article_text_to_summarize = news_item['title'] # Fallback to title
         print("Description was empty or cleaned to empty, using article title for summary input.")
 
-    # Summarization
-    if len(article_text_to_summarize.split()) < 10: # Adjusted minimum length for meaningful summary
-        summary = article_text_to_summarize # Use directly if too short
-        print("Cleaned text too short, using it directly as summary.")
-    else:
-        summary = summarize_text(article_text_to_summarize, NUM_SENTENCES_SUMMARY)
-    
-    if not summary: # Ensure summary is not empty after summarization attempt
-        print("Summarizer returned empty, using original cleaned text or title as fallback summary.")
-        summary = article_text_to_summarize # Fallback to the cleaned text (or title if description was empty)
 
-    # DEBUG: Print final summary before translation
-    print(f"DEBUG: Final summary before translation: {summary}")
 
-    # Translation
-    arabic_summary = translate_text(summary, LANGUAGE_TO_TRANSLATE_TO)
-    if not arabic_summary or "Translation failed" in arabic_summary: # Check if translation actually failed
-        print("Translation failed or resulted in error message. Sending English summary if available, or a notice.")
-        if summary and "Translation failed" not in summary : # Avoid sending "Translation failed" as the message
-             arabic_summary = f"Original Summary (English):\n{summary}" # Fallback to English summary
-        else:
-             arabic_summary = "Summary processing error."
-
+    arabic_summary = article_text_to_summarize
 
     # DEBUG: Print final Arabic summary before sending
     print(f"DEBUG: Final Arabic summary before sending to Telegram: {arabic_summary}")
