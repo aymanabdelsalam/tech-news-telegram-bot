@@ -26,34 +26,50 @@ jobs:
               python -m pip install --upgrade pip
               pip install -r requirements.txt
 
-          - name: Download NLTK 'punkt' resource
+          - name: Download NLTK punkt and related resources
             run: |
               python -c "
               import nltk
               import os
               nltk_data_dir = os.path.join(os.path.expanduser('~'), 'nltk_data')
-              os.makedirs(nltk_data_dir, exist_ok=True) # Ensure base directory /home/runner/nltk_data exists
+              os.makedirs(nltk_data_dir, exist_ok=True)
               if nltk_data_dir not in nltk.data.path:
-                  nltk.data.path.insert(0, nltk_data_dir) # Add to front of NLTK's search path
+                  nltk.data.path.insert(0, nltk_data_dir)
               print(f'NLTK data path configured to: {nltk.data.path}')
+              
               print('Attempting to download NLTK punkt...')
-              nltk.download('punkt') # Let NLTK download to the configured path
+              nltk.download('punkt', quiet=True) # Can add quiet=True back if primary download is fine
               print('NLTK punkt download attempt finished.')
+              
+              print('Attempting to download NLTK punkt_tab (as suggested by error)...')
+              try:
+                  nltk.download('punkt_tab', quiet=True) # Try downloading what the error message suggests
+                  print('NLTK punkt_tab download attempt finished successfully or resource is not directly downloadable this way.')
+              except Exception as e:
+                  print(f'NLTK punkt_tab download attempt raised an exception (this might be okay if it is not a package): {e}')
               "
               echo "--- Verifying NLTK punkt resource location ---"
-              echo "Expected location for English pickle: /home/runner/nltk_data/tokenizers/punkt/english.pickle"
               if [ -f "/home/runner/nltk_data/tokenizers/punkt/english.pickle" ]; then
-                  echo "SUCCESS: english.pickle found at expected location."
+                  echo "SUCCESS: english.pickle found at /home/runner/nltk_data/tokenizers/punkt/english.pickle"
                   echo "Listing contents of /home/runner/nltk_data/tokenizers/punkt/:"
                   ls -la "/home/runner/nltk_data/tokenizers/punkt/"
+
+                  echo "--- Verifying NLTK punkt_tab resource location (if downloaded) ---"
+                  PUNKT_TAB_PATH="/home/runner/nltk_data/tokenizers/punkt_tab/english"
+                  if [ -d "$PUNKT_TAB_PATH" ]; then
+                      echo "SUCCESS: Directory $PUNKT_TAB_PATH found."
+                      echo "Listing contents of $PUNKT_TAB_PATH:"
+                      ls -la "$PUNKT_TAB_PATH"
+                  else
+                      echo "INFO: Directory $PUNKT_TAB_PATH NOT found. The 'punkt_tab' resource might be part of another package or not a standalone download."
+                      echo "Listing contents of /home/runner/nltk_data/tokenizers/ (for general structure):"
+                      ls -la "/home/runner/nltk_data/tokenizers/" || echo "/home/runner/nltk_data/tokenizers/ not found"
+                  fi
               else
-                  echo "ERROR: english.pickle NOT found at expected location."
-                  echo "Investigating directory structure..."
-                  echo "Listing /home/runner/nltk_data/ :"
-                  ls -la /home/runner/nltk_data/
-                  echo "Listing /home/runner/nltk_data/tokenizers/ (if exists):"
-                  ls -la /home/runner/nltk_data/tokenizers/ || echo "/home/runner/nltk_data/tokenizers/ not found"
+                  echo "ERROR: english.pickle NOT found at expected location. Punkt download failed."
               fi
+
+          
           - name: Run Python script
             env:
               TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
