@@ -98,7 +98,7 @@ async def main():
     # f"<b>{news_item['title']}</b>\n\n"
     message_to_send = (
         f"{arabic_summary}\n\n" # This should now be plain text
-        f"<a href='{news_item['link']}'>اقرأ المزيد (Read More)</a>"
+        f"<a href='{news_item['link']}'>اقرأ المزيد </a>"
     )
 
     send_success = await send_to_telegram(TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, message_to_send)
