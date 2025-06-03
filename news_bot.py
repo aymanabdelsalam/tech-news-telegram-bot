@@ -1,47 +1,6 @@
-import nltk
+
 import os
-
-# --- NLTK Data Path Configuration ---
-print("--- Python Script: NLTK Setup ---")
-nltk_custom_download_dir = '/home/runner/nltk_data'
-if os.path.exists(nltk_custom_download_dir):
-    if nltk_custom_download_dir not in nltk.data.path:
-        nltk.data.path.insert(0, nltk_custom_download_dir) # Ensure it's searched first
-    print(f"NLTK data path configured: {nltk.data.path}")
-
-    # Check for the specific punkt tokenizer path and english.pickle
-    punkt_english_pickle_path_str = f'tokenizers/punkt/english.pickle'
-    full_path_to_pickle = os.path.join(nltk_custom_download_dir, punkt_english_pickle_path_str)
-
-    print(f"Checking for: {full_path_to_pickle}")
-    if os.path.exists(full_path_to_pickle):
-        print(f"SUCCESS: Found {full_path_to_pickle}")
-        try:
-            # Attempt to load it directly to see if NLTK can access it
-            print(f"Attempting nltk.data.load('{punkt_english_pickle_path_str}')...")
-            loaded_resource = nltk.data.load(punkt_english_pickle_path_str)
-            print(f"Successfully loaded '{punkt_english_pickle_path_str}' with nltk.data.load(). Type: {type(loaded_resource)}")
-        except Exception as e:
-            print(f"ERROR trying to nltk.data.load('{punkt_english_pickle_path_str}'): {e}")
-            print("This might indicate the pickle file is present but cannot be loaded, or it has internal dependencies that are missing (like 'punkt_tab').")
-    else:
-        print(f"ERROR: {full_path_to_pickle} NOT found.")
-        # Also list contents of tokenizers/punkt if pickle not found (though we know it is from workflow logs)
-        punkt_dir_path = os.path.join(nltk_custom_download_dir, 'tokenizers', 'punkt')
-        if os.path.exists(punkt_dir_path):
-            print(f"Contents of {punkt_dir_path}: {os.listdir(punkt_dir_path)}")
-        else:
-            print(f"{punkt_dir_path} does not exist.")
-else:
-    print(f"NLTK custom download directory {nltk_custom_download_dir} not found.")
-print("--- End NLTK Setup ---")
-# --- End NLTK Data Path Configuration ---
-
 import feedparser
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
-from googletrans import Translator
 import telegram
 import asyncio
 import os # For environment variables and file operations
@@ -52,8 +11,6 @@ from bs4 import BeautifulSoup
 RSS_FEED_URL = os.environ.get('RSS_FEED_URL', 'http://feeds.feedburner.com/TechCrunch/')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID')
-NUM_SENTENCES_SUMMARY = 3
-LANGUAGE_TO_TRANSLATE_TO = 'ar'
 STATE_FILE = 'last_article_link.txt' # File to store the link of the last sent article
 
 # --- 0. STATE MANAGEMENT ---
@@ -86,36 +43,6 @@ def fetch_latest_news(feed_url):
         'description': latest_entry.get('summary', latest_entry.get('description', '')) # Get summary or description
     }
 
-# --- 2. SUMMARIZE NEWS ---
-def summarize_text(text, num_sentences):
-    """Summarizes the given plain text."""
-    if not text:
-        print("No text to summarize.")
-        return ""
-    # Assuming 'text' is plain text now
-    # parser = PlaintextParser.from_string(text, Tokenizer("english"))
-    # summarizer = LsaSummarizer()
-    # summary_result = summarizer(parser.document, num_sentences)
-    # summary_text = " ".join([str(sentence) for sentence in summary_result])
-    summary_text = text
-    print(f"Summary (from plain text): {summary_text}")
-    return summary_text
-
-# --- 3. TRANSLATE TEXT ---
-def translate_text(text, dest_language):
-    """Translates plain text to the destination language."""
-    if not text:
-        print("No text to translate.")
-        return ""
-    try:
-        # translator = Translator()
-        # translation = translator.translate(text, dest=dest_language)
-        translated_text = text
-        print(f"Translated text ({dest_language}): {translated_text}")
-        return translated_text
-    except Exception as e:
-        print(f"Error during translation: {e}")
-        return f"Translation failed for: {text[:50]}..." # Fallback
 
 # --- 4. SUBMIT TO TELEGRAM ---
 async def send_to_telegram(bot_token, chat_id, message):
@@ -161,8 +88,6 @@ async def main():
     if not article_text_to_summarize:
         article_text_to_summarize = news_item['title'] # Fallback to title
         print("Description was empty or cleaned to empty, using article title for summary input.")
-
-
 
     arabic_summary = article_text_to_summarize
 
