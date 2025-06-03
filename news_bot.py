@@ -1,15 +1,7 @@
-import feedparser
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
-from googletrans import Translator
-import telegram
-import asyncio
+import nltk
 import os
-from bs4 import BeautifulSoup # For HTML cleaning
 
 # --- NLTK Data Path Configuration ---
-# This ensures NLTK looks in the directory where we downloaded 'punkt' in the GitHub Action.
 print("--- Python Script: NLTK Setup ---")
 nltk_custom_download_dir = '/home/runner/nltk_data'
 if os.path.exists(nltk_custom_download_dir):
@@ -20,7 +12,7 @@ if os.path.exists(nltk_custom_download_dir):
     # Check for the specific punkt tokenizer path and english.pickle
     punkt_english_pickle_path_str = f'tokenizers/punkt/english.pickle'
     full_path_to_pickle = os.path.join(nltk_custom_download_dir, punkt_english_pickle_path_str)
-    
+
     print(f"Checking for: {full_path_to_pickle}")
     if os.path.exists(full_path_to_pickle):
         print(f"SUCCESS: Found {full_path_to_pickle}")
@@ -31,12 +23,29 @@ if os.path.exists(nltk_custom_download_dir):
             print(f"Successfully loaded '{punkt_english_pickle_path_str}' with nltk.data.load(). Type: {type(loaded_resource)}")
         except Exception as e:
             print(f"ERROR trying to nltk.data.load('{punkt_english_pickle_path_str}'): {e}")
+            print("This might indicate the pickle file is present but cannot be loaded, or it has internal dependencies that are missing (like 'punkt_tab').")
     else:
         print(f"ERROR: {full_path_to_pickle} NOT found.")
+        # Also list contents of tokenizers/punkt if pickle not found (though we know it is from workflow logs)
+        punkt_dir_path = os.path.join(nltk_custom_download_dir, 'tokenizers', 'punkt')
+        if os.path.exists(punkt_dir_path):
+            print(f"Contents of {punkt_dir_path}: {os.listdir(punkt_dir_path)}")
+        else:
+            print(f"{punkt_dir_path} does not exist.")
 else:
     print(f"NLTK custom download directory {nltk_custom_download_dir} not found.")
 print("--- End NLTK Setup ---")
 # --- End NLTK Data Path Configuration ---
+
+import feedparser
+from sumy.parsers.plaintext import PlaintextParser
+from sumy.nlp.tokenizers import Tokenizer
+from sumy.summarizers.lsa import LsaSummarizer
+from googletrans import Translator
+import telegram
+import asyncio
+import os # For environment variables and file operations
+from bs4 import BeautifulSoup
 
 
 # --- CONFIGURATION (from environment variables) ---
