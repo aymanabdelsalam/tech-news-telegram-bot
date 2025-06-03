@@ -1,3 +1,19 @@
+import nltk
+import os
+
+# --- NLTK Data Path Configuration ---
+# This ensures NLTK looks in the directory where we downloaded 'punkt' in the GitHub Action.
+nltk_custom_download_dir = '/home/runner/nltk_data'
+if os.path.exists(nltk_custom_download_dir):
+    if nltk_custom_download_dir not in nltk.data.path:
+        nltk.data.path.append(nltk_custom_download_dir) # Append is fine, or insert(0,...)
+    print(f"Python Script: Added {nltk_custom_download_dir} to NLTK data path.")
+    print(f"Python Script: Current NLTK data path: {nltk.data.path}")
+else:
+    print(f"Python Script: NLTK custom download directory {nltk_custom_download_dir} not found.")
+    print(f"Python Script: Current NLTK data path (before potential modification by NLTK itself): {nltk.data.path}")
+# --- End NLTK Data Path Configuration ---
+
 import feedparser
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
