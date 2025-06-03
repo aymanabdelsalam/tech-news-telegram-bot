@@ -93,10 +93,11 @@ def summarize_text(text, num_sentences):
         print("No text to summarize.")
         return ""
     # Assuming 'text' is plain text now
-    parser = PlaintextParser.from_string(text, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    summary_result = summarizer(parser.document, num_sentences)
-    summary_text = " ".join([str(sentence) for sentence in summary_result])
+    # parser = PlaintextParser.from_string(text, Tokenizer("english"))
+    # summarizer = LsaSummarizer()
+    # summary_result = summarizer(parser.document, num_sentences)
+    # summary_text = " ".join([str(sentence) for sentence in summary_result])
+    summary_text = text
     print(f"Summary (from plain text): {summary_text}")
     return summary_text
 
