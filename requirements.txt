@@ -1,6 +1,6 @@
 feedparser
 sumy
 googletrans==4.0.0-rc1
-python-telegram-bot
+python-telegram-bot>=20.0 
 numpy
 beautifulsoup4
