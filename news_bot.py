@@ -95,8 +95,8 @@ async def main():
     print(f"DEBUG: Final Arabic summary before sending to Telegram: {arabic_summary}")
 
     # Format and Send to Telegram
+    # f"<b>{news_item['title']}</b>\n\n"
     message_to_send = (
-        f"<b>{news_item['title']}</b>\n\n"
         f"{arabic_summary}\n\n" # This should now be plain text
         f"<a href='{news_item['link']}'>اقرأ المزيد (Read More)</a>"
     )
