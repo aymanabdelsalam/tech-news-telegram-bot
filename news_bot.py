@@ -40,10 +40,7 @@ def fetch_latest_news(feed_url):
     return {
         'title': latest_entry.title,
         'link': latest_entry.link,
-        'description': latest_entry.summary
-#        'description': 
-# latest_entry.get('summary', 
-# latest_entry.get('description', '')) # Get summary or description
+        'description': latest_entry.get('summary', latest_entry.get('description', '')) # Get summary or description
     }
 
 
