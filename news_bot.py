@@ -40,7 +40,10 @@ def fetch_latest_news(feed_url):
     return {
         'title': latest_entry.title,
         'link': latest_entry.link,
-        'description': latest_entry.get('summary', latest_entry.get('description', '')) # Get summary or description
+        'description': latest_entry.summary
+#        'description': 
+# latest_entry.get('summary', 
+# latest_entry.get('description', '')) # Get summary or description
     }
 
 
@@ -77,8 +80,7 @@ async def main():
         return
 
     # HTML CLEANING of the description
-    raw_description = ""
-# news_item['description']
+    raw_description = news_item['description']
     article_text_to_summarize = "" # Initialize
     if raw_description:
         soup = BeautifulSoup(raw_description, "html.parser")
