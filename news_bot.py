@@ -77,7 +77,8 @@ async def main():
         return
 
     # HTML CLEANING of the description
-    raw_description = news_item['description']
+    raw_description = ""
+# news_item['description']
     article_text_to_summarize = "" # Initialize
     if raw_description:
         soup = BeautifulSoup(raw_description, "html.parser")
