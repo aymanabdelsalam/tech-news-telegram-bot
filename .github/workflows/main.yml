@@ -7,6 +7,7 @@ on:
     - cron: '4 */5 * * *'
   workflow_dispatch: # Allows manual triggering from the Actions tab
 
+
 jobs:
       run-news-bot:
         runs-on: ubuntu-latest
